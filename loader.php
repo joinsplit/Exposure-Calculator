@@ -257,6 +257,83 @@ foreach ($result as $key => $res) {
     ->td( number_format( (($profit / $wallet_balance_start) * 100 ) , 2).'%');
 }
 
+$pnl_records = $dataReader->get_pnl_records($selected_account);
+
+$result_monthly = [];
+$x = 0;
+foreach($pnl_records as $key => $pnl_record) {
+
+    // Group by month and year
+    $month = date('Y-m-01 00:00:00', $pnl_record['start_time'] / 1000);
+    $result_monthly[$month][$x] = array_merge(['month' => $month] , $pnl_record);
+
+    $x++;
+}
+
+$monthly_table = new STable();
+$monthly_table->class = 'table table-dark table-sm';
+$monthly_table->id = 'realized_pnl_monthly';
+
+$monthly_table->thead()
+->th('Start')
+->th('End')
+->th('Balance start')
+->th('Balance end')
+->th('Unrealized PnL')
+->th('Transfer in')
+->th('Transfer out')
+->th('Profit')
+->th('Profit %');
+
+foreach ($result_monthly as $key => $res) {
+
+    $normal = $result_monthly[$key];
+    $reverse = array_reverse($result_monthly[$key]);
+
+    $transfer_in = 0;
+    $transfer_out = 0;
+
+    foreach($normal as $i => $norm) {
+        $transfer_in += $norm['transfer_in'];
+        $transfer_out += $norm['transfer_out'];
+        $wallet_balance_end = $norm['wallet_balance'];
+        $unrealized_pnl = $norm['unrealized_pnl'];
+        $end_time = date('Y-m-d H:i:s', $norm['end_time'] / 1000);
+        if ($unrealized_pnl == 0) {
+            $unrealized_pnl = $normal[$i-1]['unrealized_pnl'];
+        }
+        if ($wallet_balance_end == 0) {
+            $wallet_balance_end = $normal[$i-1]['wallet_balance'];
+        }
+    }
+
+    foreach($reverse as $rev) {
+        $wallet_balance_start = $rev['wallet_balance'];
+        $unrealized_pnl_start = $rev['unrealized_pnl'];
+        $start_time = date('Y-m-d H:i:s', $rev['start_time'] / 1000);
+    }
+
+    if($exchange_name == 'ftx') {
+        $wallet_balance_end = ($wallet_balance_end + ($unrealized_pnl * -1));
+        $wallet_balance_start = ($wallet_balance_start + ($unrealized_pnl_start * -1));
+    }
+
+    $profit = $wallet_balance_end - $wallet_balance_start;
+    $profit += $transfer_out;
+    $profit -= $transfer_in;
+
+    $monthly_table->tr()
+    ->td($start_time)
+    ->td($end_time)
+    ->td(number_format( $wallet_balance_start , 2))
+    ->td(number_format( $wallet_balance_end , 2))
+    ->td(number_format( $unrealized_pnl , 2))
+    ->td(number_format( $transfer_in , 2))
+    ->td(number_format( $transfer_out , 2))
+    ->td(number_format( $profit , 2))
+    ->td(number_format( (($profit / $wallet_balance_start) * 100 ) , 2).'%');
+}
+
 /**
  * 
  * Unrealized PnL Chart

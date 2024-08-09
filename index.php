@@ -174,92 +174,7 @@ include (__DIR__.'/loader.php');
   ?>
     </div>
 
-    <!-- Calculators -->
-    <div class="workspace">
-      <h2>Calculators</h2>
-      <div class="row row-cols-2 row-cols-md-2 g-2">
-        <div class="col">
-          <div class="card text-white bg-dark mb-3">
-            <div class="card-header">DCA Calculator <span class="text-white " data-bs-toggle="tooltip"
-                data-bs-placement="bottom" title="Calculate the new avg DCA price. Select an row from the trades table to insert
-                values. Add the new assets and price to calculate the new average price">
-                <i class="fas fa-info-circle"></i>
-              </span></div>
-            <div class="card-body">
-
-              <input size="8" type="hidden" id="invested"
-                value="<?php echo ($invested + $total_maintainance_margin); ?>">
-              <input size="8" type="hidden" id="total_wallet" value="<?php echo $total_wallet; ?>">
-              <table id="dca_calc" class="table table-hover table-striped table-bordered table-dark"
-                style="width:99.8%">
-                <thead>
-                  <tr>
-                    <th>...</th>
-                    <th>Assets</th>
-                    <th>Price</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td> Current </td>
-                    <td> <input size="8" type="text" id="current_asset"> </td>
-                    <td> <input size="8" type="text" id="current_price"> </td>
-                  </tr>
-                  <tr>
-                    <td> DCA </td>
-                    <td> <input size="8" type="text" id="add_asset"> </td>
-                    <td> <input size="8" type="text" id="add_price"> </td>
-                  </tr>
-                  <tr>
-                    <td> Avg. Price </td>
-                    <td> <input type="button" onclick="calculate()" value="Calculate" /> </td>
-                    <td> <input size="8" type="text" id="result"> </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-        <div class="col">
-          <div class="card text-white bg-dark mb-3">
-            <div class="card-header">Profit Calculator <span class="text-white " data-bs-toggle="tooltip"
-                data-bs-placement="bottom" title="Calculate the profit by setting the total assets , entry price and the take profit
-                price. Profits are calculated without fees.">
-                <i class="fas fa-info-circle"></i>
-              </span></div>
-            <div class="card-body">
-              <table id="profit_calc" class="table table-hover table-striped table-bordered table-dark"
-                style="width:99.8%">
-                <thead>
-                  <tr>
-                    <th>...</th>
-                    <th>Value</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td> Current assets </td>
-                    <td> <input size="8" type="text" id="profit_asset"> </td>
-                  </tr>
-                  <tr>
-                    <td> Entry price </td>
-                    <td> <input size="8" type="text" id="profit_entry"> </td>
-                  </tr>
-                  <tr>
-                    <td> Profit price </td>
-                    <td> <input size="8" type="text" id="profit_price"> <input type="button"
-                        onclick="calculate_profit()" value="Calculate" /></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-        <div id="exposure_dca_result" style="display : none;"> Your new exposure will be approx. :</div>
-        <div id="profit_result" style="display : none;"></div>
-      </div>
-    </div>
-
+  
     <!-- Daily PnL -->
     <div class="workspace">
       <h2>Daily PnL</h2>
@@ -267,6 +182,13 @@ include (__DIR__.'/loader.php');
       echo $daily_table->getTable();
       ?>
     </div>
+    
+    <div class="workspace">
+  <h2>Monthly PnL</h2>
+  <?php
+  echo $monthly_table->getTable();
+  ?>
+</div>
 
     <!-- Charts -->
     <div class="workspace">
