@@ -60,74 +60,6 @@ foreach ($accounts as $account) {
     }
 }
 
-// Binance information
-if ($exchange_name == 'binance') {
-
-    $binance = new BinanceConnector($user_api_key , $user_api_secret , true);
-    $account_info= $binance->account_info();
-    $risk = $binance->get_risk();
-
-    $income = $binance->income(['incomeType' => 'REALIZED_PNL' , 'limit' => 1000]);
-    $commision = $binance->income(['incomeType' => 'COMMISSION' , 'limit' => 1000]);
-    $funding_fee = $binance->income(['incomeType' => 'FUNDING_FEE' , 'limit' => 1000]);
-
-    array_multisort(array_column($income, 'time'),  SORT_DESC , $income);
-    array_multisort(array_column($commision, 'time'),  SORT_DESC , $commision);
-    array_multisort(array_column($funding_fee, 'time'),  SORT_DESC , $funding_fee);
-
-    $total_wallet = $account_info['totalWalletBalance'];
-    $total_unrealized = $account_info['totalUnrealizedProfit'];
-    $total_margin_balance = $account_info['totalMarginBalance'];
-    $total_maintainance_margin = $account_info['totalMaintMargin'];
-    $total_margin_balance = $account_info['totalMarginBalance'];
-
-    $binance_wrapper = new BinanceWrapper();
-
-    $open_positions = $binance_wrapper->load_open_positions($account_info['positions']);
-    $invested = $binance_wrapper->load_totals('invested' , $account_info['positions']);
-    $current_worth = $binance_wrapper->load_totals('current_worth' , $account_info['positions']);
-
-    $exposure = number_format(  ($invested+$total_maintainance_margin) / $total_wallet , 2);
-    $margin_ratio =  number_format ( ($total_maintainance_margin / ($total_wallet + $total_unrealized)) * 100 , 2).'%';
-    $max_drop = number_format ( ( ($total_margin_balance - $total_maintainance_margin) / ($current_worth)) * 100 , 2).'%';
-
-}
-
-// FTX information
-if($exchange_name == 'ftx') {
-
-    $ftx = new FTXConnector($user_api_key , $user_api_secret , $user_sub_account);
-
-    $ftx_wrapper = new FTXWrapper();
-    $fetched_positions = $ftx->get_positions();
-    $account_info = $ftx->get_account_info();
-    $balances = $ftx->get_balances();
-    $deposits = $ftx->get_deposits();
-    $open_positions = $ftx_wrapper->load_open_positions($fetched_positions['result']);
-
-    foreach($balances['result'] as $balance) {
-        if ($balance['coin'] == 'USD') {
-            $total_wallet = $balance['total'];
-        }
-    }
-
-    //$total_wallet = $balance['USD']['total'];
-    $total_unrealized = $ftx_wrapper->load_totals('unrealized_pnl' , $fetched_positions['result']);
-    $total_maintainance_margin = $account_info['result']['collateral'] - $account_info['result']['freeCollateral'];
-    $total_wallet = $account_info['result']['totalAccountValue'] + ( $total_unrealized * - 1);
-    $total_margin_balance = $total_wallet + $total_unrealized;
-
-    $invested = $ftx_wrapper->load_totals('invested' , $fetched_positions['result']);   
-    $current_worth = $ftx_wrapper->load_totals('current_worth' , $fetched_positions['result']);    
-
-    $exposure = number_format(  ($invested) / $total_wallet , 2);
-    $margin_ratio =  number_format ( ($total_maintainance_margin / ($total_wallet + $total_unrealized)) * 100 , 2).'%';
-    $max_drop = number_format ( ( ($total_margin_balance ) / ($current_worth)) * 100 , 2).'%';  
-
-    $margin_ratio =  "#N/A";
-
-    
-}
 
 // Bybit information
 if ($exchange_name == 'bybit') {
@@ -136,27 +68,50 @@ if ($exchange_name == 'bybit') {
 
     $wallet_info = $bybit->wallet_info();
 
+	//print_r(json_encode($wallet_info));
+	
     $positions_info = $bybit->get_positions();
+	//print_r(json_encode($positions_info));
+    $total_wallet = $wallet_info['result']['list'][0]['totalEquity'] - $wallet_info['result']['list'][0]['totalPerpUPL'];
+	//print_r($total_wallet);
+    $total_unrealized = $wallet_info['result']['list'][0]['totalPerpUPL'];
+    //$total_margin_balance = $wallet_info['result']['USDT']['position_margin'];
 
-    $total_wallet = $wallet_info['result']['USDT']['wallet_balance'];
-    $total_unrealized = $wallet_info['result']['USDT']['unrealised_pnl'];
-    $total_margin_balance = $wallet_info['result']['USDT']['position_margin'];
-
-    $total_margin_balance = $wallet_info['result']['USDT']['equity'];
-    $total_maintainance_margin = $wallet_info['result']['USDT']['position_margin'] + $wallet_info['result']['USDT']['unrealised_pnl'];
+    $total_margin_balance = $wallet_info['result']['list'][0]['totalInitialMargin'];
+    $total_maintainance_margin = $wallet_info['result']['list'][0]['totalPositionMM'];
 
     $realized_pnl_daily = $wallet_info['result']['USDT']['realised_pnl'];
     $realized_pnl_total = $wallet_info['result']['USDT']['cum_realised_pnl'];
 
     $bybit_wrapper = new BybitWrapper();
 
-    $open_positions = $bybit_wrapper->load_open_positions($positions_info['result']);
-    $invested = $bybit_wrapper->load_totals('invested' , $positions_info['result']);
-    $current_worth = $bybit_wrapper->load_totals('current_worth' , $positions_info['result']);
+    $all_positions = array();
+    $nextPageCursor = null;
 
-    $exposure = number_format(  ($invested+$total_maintainance_margin) / $total_wallet , 2);
+    do {
+        $positions_info = $bybit->get_positions($nextPageCursor);
+
+        // Check for API error
+        if ($positions_info['retCode'] !== 0) {
+            throw new Exception('API Error: ' . $positions_info['retMsg']);
+        }
+
+        // Merge current page positions with all positions
+        $all_positions = array_merge($all_positions, $positions_info['result']['list']);
+
+        // Check for the nextPageCursor for pagination
+        $nextPageCursor = $positions_info['result']['nextPageCursor'] ?? null;
+
+    } while ($nextPageCursor);
+
+    $open_positions = $bybit_wrapper->load_open_positions($all_positions);
+    //print_r($open_positions);
+	$invested = $bybit_wrapper->load_totals('invested', $open_positions);
+	$current_worth = $bybit_wrapper->load_totals('current_worth', $open_positions);
+
+    $live_exposure = ($invested) / $total_wallet ;
     $margin_ratio =  "#N/A";
-    $max_drop = number_format ( ( ($total_margin_balance - $total_maintainance_margin) / ($current_worth)) * 100 , 2).'%';
+    //$max_drop = number_format ( ( ($total_margin_balance - $total_maintainance_margin) / ($current_worth)) * 100 , 2).'%';
 }
 
 /**
@@ -259,6 +214,9 @@ foreach ($result as $key => $res) {
     $transfer_out = 0;
 
     foreach($normal as $i => $norm) {
+    	if (!isset($exposure) || $exposure == 0) {
+            $exposure = $norm['exposure'];
+        }
         $transfer_in += $norm['transfer_in'];
         $transfer_out += $norm['transfer_out'];
         $wallet_balance_end = $norm['wallet_balance'];
@@ -410,11 +368,6 @@ foreach ($result_1 as $key => $res) {
     $x_axis_wallet[] = $end_time;
    
 
-    // For FTX we need to calculate the wallet balance to get a more stable overview as it's being deducted with Unrealized PnL
-    if ($exchange_name == 'ftx') {
-        $y_axis_wallet[] = number_format( ($wallet_balance_end + ($unrealized_pnl * -1)) , 2 , "." , "");
-    } else {
-        $y_axis_wallet[] = number_format( $wallet_balance_end , 2 , "." , "");
-    }
 }
 ?>
+

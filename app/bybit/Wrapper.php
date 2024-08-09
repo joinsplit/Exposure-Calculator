@@ -6,48 +6,47 @@ class BybitWrapper
      /**
      * Create an overview of total open positions
      */
-    public function load_open_positions($open_positions) {
+public function load_open_positions($open_positions) {
 
-        $result = array();
-        $i = 0;
+    $result = array();
+    $i = 0;
 
-        foreach ($open_positions as $position) {
-           
-            if ($position['data']['size'] > 0) {
+    foreach ($open_positions as $single_position) {
+        
+            // Check if 'positionValue' is greater than 0
+            if ($single_position['positionValue'] > 0) {
 
-                //pr($position);
+                //print_r($single_position);
 
-                if ($position['data']['side'] == 'Sell') {
+                // Determine the factor based on the 'side' of the position
+                if ($single_position['side'] == 'Sell') {
                     $factor = -1;
                 } else {
                     $factor = 1;
                 }
-
-                $bybit = new BybitConnector('a','b');
-
-                $ticker = $bybit->get_ticker($position['data']['symbol']);
-
-                $current_price = $ticker['result'][0]['bid_price'];
-
-                $result[$i] = array( 
-                    'symbol' => $position['data']['symbol'] , 
-                    'totalAsset' => $position['data']['size'] ,
-                    'entryPrice' => $position['data']['entry_price'] , 
-                    'currentPrice' => $current_price ,
-                    'profitPercentage' =>  ( ($$current_price * $position['data']['size']) / ($position['data']['entry_price'] * $position['data']['size']) ) * $factor ,
-                    'profitPercentage_min' =>  ( ( ($current_price * $position['data']['size']) / ($position['data']['entry_price'] * $position['data']['size'] ) - 1) * 100 ) * $factor ,
-                    'investedWorth' => ($position['data']['entry_price'] * $position['data']['size'] ) ,
-                    'currentWorth' => ($current_price * $position['data']['size']) ,
-                    'pnl' =>  ( ($current_price * $position['data']['size']) - ($position['data']['entry_price'] * $position['data']['size']) ) * $factor  ,
-                    'side' => $position['data']['side'] ,
-                    'liqPrice' => $position['data']['liq_price']);
+				$result[$i] = array( 
+                    'symbol' => $single_position['symbol'], 
+                    'totalAsset' => $single_position['size'],
+                    'entryPrice' => $single_position['avgPrice'], 
+                    'currentPrice' => $single_position['markPrice'],
+                    'profitPercentage' => (($single_position['markPrice'] * $single_position['size']) / ($single_position['avgPrice'] * $single_position['size']) - 1) * 100 * $factor,
+                    'profitPercentage_min' => (($single_position['markPrice'] * $single_position['size']) / ($single_position['avgPrice'] * $single_position['size']) - 1) * 100 * $factor,
+                    'investedWorth' => ($single_position['avgPrice'] * $single_position['size']),
+                    'currentWorth' => ($single_position['markPrice'] * $single_position['size']),
+                    'pnl' => (($single_position['markPrice'] * $single_position['size']) - ($single_position['avgPrice'] * $single_position['size'])) * $factor,
+                    'side' => $single_position['side'],
+                    'liqPrice' => $single_position['liqPrice']
+                );
                 $i++;
             }
-        }
+		}
+        
+		
+	array_multisort(array_column($result, 'profitPercentage'), SORT_DESC, $result);
+    return $result;
 
-        array_multisort(array_column($result, 'profitPercentage'),  SORT_DESC , $result);
-        return $result;
     }
+
 
      /**
      * Get totals from the open positions
@@ -58,7 +57,7 @@ class BybitWrapper
             $invested = 0;
 
             foreach($open_positions as $position) {
-                $invested += $position['data']['position_value'];
+                $invested += $position['investedWorth'];
             }
 
             return $invested;
@@ -68,10 +67,11 @@ class BybitWrapper
             $current_worth = 0;
 
             foreach($open_positions as $position) {
-                $current_worth += $position['data']['position_value'] + $position['data']['unrealised_pnl'];
+                $current_worth += $position['currentWorth'];
             }
 
             return $current_worth;
         }
     }
 }
+

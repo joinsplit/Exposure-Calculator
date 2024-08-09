@@ -28,6 +28,9 @@ class BybitConnector
         if (!strpos($url , 'publid')) {
             $params['api_key'] = $this->api_key;
             $params['timestamp'] = number_format($timestamp, 0, '.', '');
+			$params['accountType'] = 'UNIFIED';
+			$params['category'] = 'linear';
+			$params['settleCoin'] = 'USDT';
         }
 
         ksort($params); // Paramaters need to be sorted in alphabetical order
@@ -35,9 +38,9 @@ class BybitConnector
         $query = http_build_query($params, '', '&');
         $signature = hash_hmac('sha256', urldecode(http_build_query($params)) , $this->api_secret);
 
-        $endpoint = $this->base_url . $url . '?' . $query . '&sign=' . $signature;
+        $endpoint = $this->base_url . $url . '?' . $query . '&sign=' . $signature ;
 
-        
+        //print($endpoint);
 
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $endpoint);
@@ -46,7 +49,7 @@ class BybitConnector
         curl_setopt($curl, CURLOPT_FOLLOWLOCATION, 1);
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
         curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
-
+	
         $output = curl_exec($curl);
 
         //$header_size = curl_getinfo($curl, CURLINFO_HEADER_SIZE);
@@ -55,7 +58,8 @@ class BybitConnector
         curl_close($curl);
         
         $json = json_decode($output, true);
-
+		//print($json);
+		//print($output);
         return $json;
     }
 
@@ -63,16 +67,19 @@ class BybitConnector
      * Get the account info , contains all the info we need to get the required information
      */
     public function wallet_info() {
-        return $this->request_info('/v2/private/wallet/balance');
+        return $this->request_info('/v5/account/wallet-balance');
     }
 
     /**
      * Get the account info , contains all the info we need to get the required information
      */
-    public function get_positions() {
-        return $this->request_info('/private/linear/position/list' , $params );
+    public function get_positions($cursor = null) {
+        $params = [];
+        if ($cursor) {
+            $params['cursor'] = $cursor;
+        }
+        return $this->request_info('/v5/position/list', $params);
     }
-
     /**
      * Get the current risk
      */
@@ -93,7 +100,7 @@ class BybitConnector
     }
 
     public function get_symbols() {
-        return $this->request_info('/v2/public/symbols');
+        return $this->request_info('/v5/public/symbols');
     }
 
     public function get_funding_fee($symbol) {
@@ -101,19 +108,19 @@ class BybitConnector
     }
 
     public function get_transfers($params = array()) {
-        return $this->request_info('/asset/v1/private/transfer/list' , $params);
+        return $this->request_info('/asset/v5/private/transfer/list' , $params);
     }
 
     public function get_key_permissions() {        
-        return $this->request_info('/v2/private/account/api-key');        
+        return $this->request_info('/v5/private/account/api-key');        
     }
 
     public function get_deposits() {
-        return $this->request_info('/v2/private/wallet/withdraw/list');     
+        return $this->request_info('/v5/private/wallet/withdraw/list');     
     }
 
     public function get_withdrawals() {
-        return $this->request_info('/v2/private/wallet/deposit/list');     
+        return $this->request_info('/v5/private/wallet/deposit/list');     
     }
 
     public function get_open_orders($symbol) {
@@ -125,11 +132,12 @@ class BybitConnector
     }
 
     public function get_api_info() {
-        return $this->request_info('/v2/private/account/api-key');         
+        return $this->request_info('/v5/private/account/api-key');         
     }
 
     public function get_ticker($symbol) {
-        return $this->request_info('/v2/public/tickers' , ['symbol' => $symbol]);
+        return $this->request_info('/v5/public/tickers' , ['symbol' => $symbol]);
     }
 }
 ?>
+

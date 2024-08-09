@@ -88,7 +88,7 @@ include (__DIR__.'/loader.php');
           <div class="card text-white <?php echo $kpi_exposure_color; ?> bg-dark mb-3">
             <div class="card-header">Exposure</div>
             <div class="card-body">
-              <h2><?php echo $exposure; ?></h2>
+              <h2><?php echo number_format( $live_exposure , 2); ?></h2>
             </div>
           </div>
         </div>
@@ -102,7 +102,7 @@ include (__DIR__.'/loader.php');
         </div>
         <div class="col">
           <div class="card text-white <?php echo $kpi_pnl_color; ?> bg-dark mb-3">
-            <div class="card-header">Unrealized PnL</div>
+            <div class="card-header">Unrealized</div>
             <div class="card-body ">
               <h2><?php echo '$ '. number_format( $total_unrealized , 2) ?></h2>
             </div>
@@ -110,7 +110,7 @@ include (__DIR__.'/loader.php');
         </div>
         <div class="col">
           <div class="card text-white bg-dark mb-3">
-            <div class="card-header">Total margin balance</div>
+            <div class="card-header">Total Margin</div>
             <div class="card-body">
               <h2><?php echo '$ '.number_format( $total_margin_balance , 2); ?></h2>
             </div>
@@ -126,7 +126,7 @@ include (__DIR__.'/loader.php');
         </div>
         <div class="col">
           <div class="card text-white bg-dark mb-3">
-            <div class="card-header">Current Worth</div>
+            <div class="card-header">Current</div>
             <div class="card-body">
               <h2><?php echo '$ '.number_format( $current_worth , 2); ?></h2>
             </div>
@@ -156,7 +156,7 @@ include (__DIR__.'/loader.php');
         </div>
         <div class="col">
           <div class="card text-white bg-dark mb-3">
-            <div class="card-header">Maintainance margin</div>
+            <div class="card-header">Maintainance</div>
             <div class="card-body">
               <h2><?php echo '$ '.number_format( $total_maintainance_margin , 2); ?></h2>
             </div>
